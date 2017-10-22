@@ -60,34 +60,45 @@ func main() {
 		}
 		log.Info(t.User.ScreenName)
 		userTweets, err := api.GetUserTimeline(url.Values{
-			"screen_name": []string{t.User.ScreenName},
+			"screen_name": []string{t.User.ScreenName}, "count": []string{"200"},
 		})
+		print(userTweets)
+		print(err)
 		if err != nil {
 			log.Errorf("Could not get tweets for %v: %v", t.User.ScreenName, err)
 		}
 		tweets := make(map[string]int)
-		var retweeter []anaconda.User
+		var retweeter []string
 		for _, v := range userTweets {
 			if !v.Retweeted {
+				log.Info("Not a retweet")
 				spliced := strings.Split(strings.ToLower(v.Text), " ")
 				for _, str := range spliced {
 					tweets[str] = tweets[str] + 1
 				}
 			} else {
+				log.Info("Retweeted tweet found")
 				rtls, err := api.GetRetweets(v.Id, nil)
 				if err != nil {
 					log.Errorf("Could not get tweets for %v: %v", v.Id, err)
 				}
+				log.Info("Other Retweeters ", rtls)
 				for _, rt := range rtls {
-					retweeter = append(retweeter, rt.User)
-					log.Info("User ", rt.User.ScreenName)
-					retweeterTweets, _ := api.GetUserTimeline(url.Values{"screen_id": []string{rt.User.ScreenName}})
-					retweeterMap := postAnalysis.WordCount(retweeterTweets)
-					relationship := postAnalysis.FindMatches(tweets, retweeterMap)
-					if relationship > 0.8 {
-						print("Yay")
-					}
+					retweeter = append(retweeter, rt.User.ScreenName)
+					log.Info("Adding retweeter", rt.User.ScreenName)
 				}
+			}
+		}
+		log.Info("Retweets: ", retweeter)
+		log.Info("User Heatmap: ", tweets)
+		for _, user := range retweeter {
+			retweeterTweets, _ := api.GetUserTimeline(url.Values{"screen_name": []string{user}, "count": []string{"200"}})
+			retweeterMap := postAnalysis.WordCount(retweeterTweets)
+			log.Info("RT heatmap: ", retweeterMap)
+			relationship := postAnalysis.FindMatches(tweets, retweeterMap)
+			log.Info("User ", user, " has a relationship of ", relationship)
+			if relationship > 0.8 {
+				log.Info("Freind")
 			}
 		}
 	}
