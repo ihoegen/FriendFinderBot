@@ -65,6 +65,23 @@ func main() {
 		log.Infof("posted %v", message)
 	}
 	userTweets := api.GetUserTimeline(t.User.ScreenName)
+    tweets = make(map[string]int)
+    retweets = make(map[string][]User)
+    for i, v := range userTweets {
+        if !v.Retweeted {
+            spliced = strings.Split(v.Text, " ")
+            for k, str := range spliced {
+                tweets[str] = tweets[str] + 1
+            }
+        } else {
+            rtls = api.GetRetweets(v.Id, nil)
+            var s []User
+            for j, rt := range rtls {
+                s = append(s, rt.User)
+            }
+            retweets[v] = s
+        }
+    }
 }
 
 type logger struct {
