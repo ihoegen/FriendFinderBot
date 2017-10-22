@@ -14,8 +14,10 @@
 package main
 
 import (
+	"math"
 	"net/url"
 	"os"
+
 	"github.com/ChimeraCoder/anaconda"
 	"github.com/Sirupsen/logrus"
 )
@@ -70,6 +72,29 @@ type logger struct {
 	*logrus.Logger
 }
 
+func FindMatches(user_keywords map[string]int, potential_match map[string]int) float64 {
+	keys := make([]string, 0, len(user_keywords))
+	userTotal := 0
+	userAverage := float64(userTotal) / float64(len(user_keywords))
+	matchTotal := 0
+	matchAverage := float64(matchTotal) / float64(len(potential_match))
+	for k := range user_keywords {
+		keys = append(keys, k)
+		userTotal += user_keywords[k]
+	}
+	for k := range potential_match {
+		matchTotal += potential_match[k]
+	}
+	topSum := 0.0
+	bottomX := 0.0
+	bottomY := 0.0
+	for _, key := range keys {
+		topSum += (float64(user_keywords[key]) - userAverage) * (float64(potential_match[key]) - matchAverage)
+		bottomX += math.Pow((float64(user_keywords[key]) - userAverage), 2)
+		bottomY += math.Pow((float64(potential_match[key]) - matchAverage), 2)
+	}
+	return (topSum / (math.Sqrt(bottomX) * math.Sqrt(bottomY)))
+}
 func (log *logger) Critical(args ...interface{})                 { log.Error(args...) }
 func (log *logger) Criticalf(format string, args ...interface{}) { log.Errorf(format, args...) }
 func (log *logger) Notice(args ...interface{})                   { log.Info(args...) }
