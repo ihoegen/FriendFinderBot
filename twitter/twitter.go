@@ -16,6 +16,7 @@ package main
 import (
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
 
 	"../postAnalysis"
@@ -73,8 +74,14 @@ func main() {
 			if !v.Retweeted {
 				log.Info("Not a retweet")
 				spliced := strings.Split(strings.ToLower(v.Text), " ")
+
 				for _, str := range spliced {
-					tweets[str] = tweets[str] + 1
+					regex, err := regexp.Compile("[^a-zA-z]+")
+					cleaned := regex.ReplaceAllString(str, "")
+					if err != nil {
+						log.Error("Regex issue: ", err)
+					}
+					tweets[cleaned]++
 				}
 			} else {
 				log.Info("Retweeted tweet found")
