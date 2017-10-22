@@ -93,6 +93,18 @@ func main() {
 	}
 }
 
+//I eat ass
+func wordCount(User.ScreenName) words map{
+	userTweets := api.GetUserTimeline(url.Values{"scren_id": User.ScreenName})
+	words := make(map[string]int)
+	for i, v := range tweets {
+		spliced := strings.Split(strings.ToLower(v.Text), " ")
+		for k, str := range spliced {
+			words[str] = words[str] + 1
+		}
+	}
+}
+
 type logger struct {
 	*logrus.Logger
 }
@@ -120,6 +132,7 @@ func FindMatches(userKeywords map[string]int, PotentialMatches map[string]int) f
 	}
 	return (topSum / (math.Sqrt(bottomX) * math.Sqrt(bottomY)))
 }
+
 func (log *logger) Critical(args ...interface{})                 { log.Error(args...) }
 func (log *logger) Criticalf(format string, args ...interface{}) { log.Errorf(format, args...) }
 func (log *logger) Notice(args ...interface{})                   { log.Info(args...) }
