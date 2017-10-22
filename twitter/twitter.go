@@ -1,16 +1,3 @@
-// Copyright 2017 Google Inc. All rights reserved.
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to writing, software distributed
-// under the License is distributed on a "AS IS" BASIS, WITHOUT WARRANTIES OR
-// CONDITIONS OF ANY KIND, either express or implied.
-//
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package main
 
 import (
@@ -25,10 +12,10 @@ import (
 )
 
 var (
-	consumerKey       = "3NNsJq3o7CTo0SdxnakaaZnUa"
-	consumerSecret    = "1cQLmVhSVqToEd38dZqoo7yj1TPjD9c0IDiajED4kBJ2MG8Kxl"
-	accessToken       = "922005253666488321-SAV07T486AJjuHoyKEdLZv3uuRs0sSM"
-	accessTokenSecret = "3gHxViZyXQzgDGc8XzlFU5lw4upGPqTCcgqCGZg4PXk61"
+	consumerKey       = getenv("TWITTER_CONSUMER_KEY")
+	consumerSecret    = getenv("TWITTER_CONSUMER_SECRET")
+	accessToken       = getenv("TWITTER_ACCESS_TOKEN")
+	accessTokenSecret = getenv("TWITTER_ACCESS_TOKEN_SECRET")
 )
 
 func getenv(name string) string {
