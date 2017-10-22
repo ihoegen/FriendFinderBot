@@ -17,6 +17,7 @@ import (
 	"math"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/ChimeraCoder/anaconda"
 	"github.com/Sirupsen/logrus"
@@ -65,49 +66,57 @@ func main() {
 			continue
 		}
 		log.Infof("posted %v", message)
+		userTweets, err := api.GetUserTimeline(url.Values{
+			"screen_name": []string{t.User.ScreenName},
+		})
+		if err != nil {
+			log.Errorf("Could not get tweets for %v: %v", t.User.ScreenName, err)
+		}
+		tweets := make(map[string]int)
+		var retweeter []anaconda.User
+		for _, v := range userTweets {
+			if !v.Retweeted {
+				spliced := strings.Split(strings.ToLower(v.Text), " ")
+				for _, str := range spliced {
+					tweets[str] = tweets[str] + 1
+				}
+			} else {
+				rtls, err := api.GetRetweets(v.Id, nil)
+				if err != nil {
+					log.Errorf("Could not get tweets for %v: %v", v.Id, err)
+				}
+				for _, rt := range rtls {
+					retweeter = append(retweeter, rt.User)
+				}
+			}
+		}
 	}
-    userTweets := api.GetUserTimeline(url.Values{"screen_id": t.User.ScreenName})
-    tweets = make(map[string]int)
-    var retweeter []User
-    for i, v := range userTweets {
-        if !v.Retweeted {
-            spliced = strings.Split(strings.ToLower(v.Text), " ")
-            for k, str := range spliced {
-                tweets[str] = tweets[str] + 1
-            }
-        } else {
-            rtls = api.GetRetweets(v.Id, nil)
-            for j, rt := range rtls {
-                retweeter = append(retweeter, rt.User)
-            }
-        }
-    }
 }
 
 type logger struct {
 	*logrus.Logger
 }
 
-func FindMatches(user_keywords map[string]int, potential_match map[string]int) float64 {
-	keys := make([]string, 0, len(user_keywords))
+func FindMatches(userKeywords map[string]int, PotentialMatches map[string]int) float64 {
+	keys := make([]string, 0, len(userKeywords))
 	userTotal := 0
-	userAverage := float64(userTotal) / float64(len(user_keywords))
+	userAverage := float64(userTotal) / float64(len(userKeywords))
 	matchTotal := 0
-	matchAverage := float64(matchTotal) / float64(len(potential_match))
-	for k := range user_keywords {
+	matchAverage := float64(matchTotal) / float64(len(PotentialMatches))
+	for k := range userKeywords {
 		keys = append(keys, k)
-		userTotal += user_keywords[k]
+		userTotal += userKeywords[k]
 	}
-	for k := range potential_match {
-		matchTotal += potential_match[k]
+	for k := range PotentialMatches {
+		matchTotal += PotentialMatches[k]
 	}
 	topSum := 0.0
 	bottomX := 0.0
 	bottomY := 0.0
 	for _, key := range keys {
-		topSum += (float64(user_keywords[key]) - userAverage) * (float64(potential_match[key]) - matchAverage)
-		bottomX += math.Pow((float64(user_keywords[key]) - userAverage), 2)
-		bottomY += math.Pow((float64(potential_match[key]) - matchAverage), 2)
+		topSum += (float64(userKeywords[key]) - userAverage) * (float64(PotentialMatches[key]) - matchAverage)
+		bottomX += math.Pow((float64(userKeywords[key]) - userAverage), 2)
+		bottomY += math.Pow((float64(PotentialMatches[key]) - matchAverage), 2)
 	}
 	return (topSum / (math.Sqrt(bottomX) * math.Sqrt(bottomY)))
 }
