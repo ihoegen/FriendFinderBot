@@ -14,20 +14,20 @@
 package main
 
 import (
-	"math"
 	"net/url"
 	"os"
 	"strings"
 
+	"../postAnalysis"
 	"github.com/ChimeraCoder/anaconda"
 	"github.com/Sirupsen/logrus"
 )
 
 var (
-	consumerKey       = getenv("TWITTER_CONSUMER_KEY")
-	consumerSecret    = getenv("TWITTER_CONSUMER_SECRET")
-	accessToken       = getenv("TWITTER_ACCESS_TOKEN")
-	accessTokenSecret = getenv("TWITTER_ACCESS_TOKEN_SECRET")
+	consumerKey       = "3NNsJq3o7CTo0SdxnakaaZnUa"
+	consumerSecret    = "1cQLmVhSVqToEd38dZqoo7yj1TPjD9c0IDiajED4kBJ2MG8Kxl"
+	accessToken       = "922005253666488321-SAV07T486AJjuHoyKEdLZv3uuRs0sSM"
+	accessTokenSecret = "3gHxViZyXQzgDGc8XzlFU5lw4upGPqTCcgqCGZg4PXk61"
 )
 
 func getenv(name string) string {
@@ -59,13 +59,6 @@ func main() {
 			continue
 		}
 		log.Info(t.User.ScreenName)
-		message := "Thank you for the mention @" + t.User.ScreenName
-		_, err := api.PostTweet(message, url.Values{})
-		if err != nil {
-			log.Errorf("could not post %v: %v", message, err)
-			continue
-		}
-		log.Infof("posted %v", message)
 		userTweets, err := api.GetUserTimeline(url.Values{
 			"screen_name": []string{t.User.ScreenName},
 		})
@@ -87,50 +80,21 @@ func main() {
 				}
 				for _, rt := range rtls {
 					retweeter = append(retweeter, rt.User)
+					log.Info("User ", rt.User.ScreenName)
+					retweeterTweets, _ := api.GetUserTimeline(url.Values{"screen_id": []string{rt.User.ScreenName}})
+					retweeterMap := postAnalysis.WordCount(retweeterTweets)
+					relationship := postAnalysis.FindMatches(tweets, retweeterMap)
+					if relationship > 0.8 {
+						print("Yay")
+					}
 				}
 			}
 		}
 	}
 }
 
-//I eat ass
-func wordCount(User.ScreenName) words map{
-	userTweets := api.GetUserTimeline(url.Values{"scren_id": User.ScreenName})
-	words := make(map[string]int)
-	for i, v := range tweets {
-		spliced := strings.Split(strings.ToLower(v.Text), " ")
-		for k, str := range spliced {
-			words[str] = words[str] + 1
-		}
-	}
-}
-
 type logger struct {
 	*logrus.Logger
-}
-
-func FindMatches(userKeywords map[string]int, PotentialMatches map[string]int) float64 {
-	keys := make([]string, 0, len(userKeywords))
-	userTotal := 0
-	userAverage := float64(userTotal) / float64(len(userKeywords))
-	matchTotal := 0
-	matchAverage := float64(matchTotal) / float64(len(PotentialMatches))
-	for k := range userKeywords {
-		keys = append(keys, k)
-		userTotal += userKeywords[k]
-	}
-	for k := range PotentialMatches {
-		matchTotal += PotentialMatches[k]
-	}
-	topSum := 0.0
-	bottomX := 0.0
-	bottomY := 0.0
-	for _, key := range keys {
-		topSum += (float64(userKeywords[key]) - userAverage) * (float64(PotentialMatches[key]) - matchAverage)
-		bottomX += math.Pow((float64(userKeywords[key]) - userAverage), 2)
-		bottomY += math.Pow((float64(PotentialMatches[key]) - matchAverage), 2)
-	}
-	return (topSum / (math.Sqrt(bottomX) * math.Sqrt(bottomY)))
 }
 
 func (log *logger) Critical(args ...interface{})                 { log.Error(args...) }
