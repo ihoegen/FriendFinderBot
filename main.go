@@ -64,6 +64,7 @@ func main() {
 		}
 		log.Infof("posted %v", message)
 	}
+	userTweets := api.GetUserTimeline(t.User.ScreenName)
 }
 
 type logger struct {
@@ -74,3 +75,5 @@ func (log *logger) Critical(args ...interface{})                 { log.Error(arg
 func (log *logger) Criticalf(format string, args ...interface{}) { log.Errorf(format, args...) }
 func (log *logger) Notice(args ...interface{})                   { log.Info(args...) }
 func (log *logger) Noticef(format string, args ...interface{})   { log.Infof(format, args...) }
+
+func getTweets (userName)
