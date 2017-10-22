@@ -78,6 +78,10 @@ func main() {
 				regex, err := regexp.Compile("[^a-zA-z]+")
 				spaceregex, err := regexp.Compile("[\\s]+")
 				cleaned := regex.ReplaceAllString(str, "")
+				if len(cleaned) >= 4 && cleaned[:4] == "http" {
+					println("remove link")
+					continue
+				}
 				cleaned = spaceregex.ReplaceAllString(cleaned, "")
 				if err != nil {
 					log.Error("Regex issue: ", err)
@@ -88,15 +92,18 @@ func main() {
 		var mostUsed string
 		var mostUsedCount int = 0
 		for word, count := range tweets {
-			if count > mostUsedCount {
-				if postAnalysis.InSlice(word, postAnalysis.CommonWords) {
-					continue
+			if count >= mostUsedCount && word != "" {
+				log.Infof("old: %d  new: %d\n", mostUsedCount, count)
+				log.Infof("old: %v  new: %v\n", mostUsed, word)
+				if !postAnalysis.InSlice(word, postAnalysis.CommonWords) {
+					log.Info("most used user word " + word)
+					mostUsed = word
+					mostUsedCount = count
 				}
-				mostUsed = word
-				mostUsedCount = count
 			}
 		}
 		var otherUser []string
+		log.Infof("most used word length %d", len(mostUsed))
 		userStream := api.PublicStreamFilter(url.Values{
 			"track": []string{mostUsed},
 		})
@@ -108,7 +115,7 @@ func main() {
 				log.Warningf("received unexpected value of type %T", v)
 				continue
 			}
-			if tweetCount > 50 {
+			if tweetCount > 100 {
 				userStream.Stop()
 			}
 			otherUser = append(otherUser, t2.User.ScreenName)
@@ -132,14 +139,14 @@ func main() {
 			}
 			if relationship > 0.8 {
 				log.Info("Friend")
-				message := "@" + t.User.ScreenName + ", we would like to introduce you to " + user
+				message := "@" + t.User.ScreenName + ", we would like to introduce you to @" + user
 				log.Info("Message sent ", message)
 				api.PostTweet(message, nil)
 				break
 			}
 		}
 		log.Infof("Best match %d", topMatchPercent)
-		message := "@" + t.User.ScreenName + ", we would like to introduce you to " + topMatchUser
+		message := "@" + t.User.ScreenName + ", we would like to introduce you to @" + topMatchUser
 		log.Info("Message sent ", message)
 		api.PostTweet(message, nil)
 	}

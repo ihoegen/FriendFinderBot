@@ -16,7 +16,7 @@ ZONE:="us-central1-f"
 USER:="ianhoegen"
 
 friendfinder:
-	GOOS=linux go build twitter/twitter.go -o friendfinder
+	GOOS=linux go build -o friendfinder ./twitter/twitter.go 
 
 clean:
 	rm -f friendfinder
