@@ -68,10 +68,13 @@ func main() {
 		if err != nil {
 			log.Errorf("Could not get tweets for %v: %v", t.User.ScreenName, err)
 		}
+        friends, _ := api.GetFriendsList(url.Values{
+            "screen_name": []string{t.User.ScreenName}})
+        print(friends.Users)
 		tweets := make(map[string]int)
 		var retweeter []string
 		for _, v := range userTweets {
-			if !v.Retweeted {
+			if v.RetweetedStatus != nil {
 				log.Info("Not a retweet")
 				spliced := strings.Split(strings.ToLower(v.Text), " ")
 
@@ -85,14 +88,17 @@ func main() {
 				}
 			} else {
 				log.Info("Retweeted tweet found")
-				rtls, err := api.GetRetweets(v.Id, nil)
+                rtls, err := api.GetRetweets(v.Id, url.Values{
+                    "count": []string{"50"}})
 				if err != nil {
 					log.Errorf("Could not get tweets for %v: %v", v.Id, err)
 				}
 				log.Info("Other Retweeters ", rtls)
 				for _, rt := range rtls {
-					retweeter = append(retweeter, rt.User.ScreenName)
-					log.Info("Adding retweeter", rt.User.ScreenName)
+                    if !inSlice(rt.User, friends.Users) && !inSlice2(rt.User.ScreenName, retweeter) {
+					   retweeter = append(retweeter, rt.User.ScreenName)
+					   log.Info("Adding retweeter ", rt.User.ScreenName)
+                    }
 				}
 			}
 		}
@@ -105,10 +111,29 @@ func main() {
 			relationship := postAnalysis.FindMatches(tweets, retweeterMap)
 			log.Info("User ", user, " has a relationship of ", relationship)
 			if relationship > 0.8 {
-				log.Info("Freind")
+				log.Info("Friend")
+                break
 			}
 		}
 	}
+}
+
+func inSlice(fr anaconda.User, c []anaconda.User) bool {
+    for _, b := range c {
+        if b.ScreenName == fr.ScreenName {
+            return true
+        }
+    }
+    return false
+}
+
+func inSlice2(fr string, c []string) bool {
+    for _, b := range c {
+        if fr == b {
+            return true
+        }
+    }
+    return false
 }
 
 type logger struct {
