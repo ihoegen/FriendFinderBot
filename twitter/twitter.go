@@ -68,72 +68,99 @@ func main() {
 		if err != nil {
 			log.Errorf("Could not get tweets for %v: %v", t.User.ScreenName, err)
 		}
-        friends, _ := api.GetFriendsList(url.Values{
-            "screen_name": []string{t.User.ScreenName}})
-        print(friends.Users)
+		friends, _ := api.GetFriendsList(url.Values{
+			"screen_name": []string{t.User.ScreenName}})
+		print(friends.Users)
 		tweets := make(map[string]int)
-		var retweeter []string
 		for _, v := range userTweets {
-			if v.RetweetedStatus != nil {
-				log.Info("Not a retweet")
-				spliced := strings.Split(strings.ToLower(v.Text), " ")
-
-				for _, str := range spliced {
-					regex, err := regexp.Compile("[^a-zA-z]+")
-					cleaned := regex.ReplaceAllString(str, "")
-					if err != nil {
-						log.Error("Regex issue: ", err)
-					}
-					tweets[cleaned]++
-				}
-			} else {
-				log.Info("Retweeted tweet found")
-                rtls, err := api.GetRetweets(v.Id, url.Values{
-                    "count": []string{"50"}})
+			spliced := strings.Split(strings.ToLower(v.Text), " ")
+			for _, str := range spliced {
+				regex, err := regexp.Compile("[^a-zA-z]+")
+				spaceregex, err := regexp.Compile("[\\s]+")
+				cleaned := regex.ReplaceAllString(str, "")
+				cleaned = spaceregex.ReplaceAllString(cleaned, "")
 				if err != nil {
-					log.Errorf("Could not get tweets for %v: %v", v.Id, err)
+					log.Error("Regex issue: ", err)
 				}
-				log.Info("Other Retweeters ", rtls)
-				for _, rt := range rtls {
-                    if !inSlice(rt.User, friends.Users) && !inSlice2(rt.User.ScreenName, retweeter) {
-					   retweeter = append(retweeter, rt.User.ScreenName)
-					   log.Info("Adding retweeter ", rt.User.ScreenName)
-                    }
-				}
+				tweets[cleaned]++
 			}
 		}
-		log.Info("Retweets: ", retweeter)
+		var mostUsed string
+		var mostUsedCount int = 0
+		for word, count := range tweets {
+			if count > mostUsedCount {
+				if postAnalysis.InSlice(word, postAnalysis.CommonWords) {
+					continue
+				}
+				mostUsed = word
+				mostUsedCount = count
+			}
+		}
+		var otherUser []string
+		userStream := api.PublicStreamFilter(url.Values{
+			"track": []string{mostUsed},
+		})
+		var tweetCount int
+		defer userStream.Stop()
+		for ot := range userStream.C {
+			t2, ok := ot.(anaconda.Tweet)
+			if !ok {
+				log.Warningf("received unexpected value of type %T", v)
+				continue
+			}
+			if tweetCount > 50 {
+				userStream.Stop()
+			}
+			otherUser = append(otherUser, t2.User.ScreenName)
+			tweetCount++
+		}
+		defer stream.Stop()
+		log.Info("Retweets: ", otherUser)
 		log.Info("User Heatmap: ", tweets)
-		for _, user := range retweeter {
-			retweeterTweets, _ := api.GetUserTimeline(url.Values{"screen_name": []string{user}, "count": []string{"200"}})
-			retweeterMap := postAnalysis.WordCount(retweeterTweets)
-			log.Info("RT heatmap: ", retweeterMap)
-			relationship := postAnalysis.FindMatches(tweets, retweeterMap)
+		var topMatchUser string
+		var topMatchPercent float64
+		for _, user := range otherUser {
+			otherUserTweets, _ := api.GetUserTimeline(url.Values{"screen_name": []string{user}, "count": []string{"200"}})
+			otherUserMap := postAnalysis.WordCount(otherUserTweets)
+			log.Info("RT heatmap: ", otherUserMap)
+			log.Info("Looking at " + user)
+			relationship := postAnalysis.FindMatches(tweets, otherUserMap)
 			log.Info("User ", user, " has a relationship of ", relationship)
+			if relationship > topMatchPercent {
+				topMatchPercent = relationship
+				topMatchUser = user
+			}
 			if relationship > 0.8 {
 				log.Info("Friend")
-                break
+				message := "@" + t.User.ScreenName + ", we would like to introduce you to " + user
+				log.Info("Message sent ", message)
+				api.PostTweet(message, nil)
+				break
 			}
 		}
+		log.Infof("Best match %d", topMatchPercent)
+		message := "@" + t.User.ScreenName + ", we would like to introduce you to " + topMatchUser
+		log.Info("Message sent ", message)
+		api.PostTweet(message, nil)
 	}
 }
 
 func inSlice(fr anaconda.User, c []anaconda.User) bool {
-    for _, b := range c {
-        if b.ScreenName == fr.ScreenName {
-            return true
-        }
-    }
-    return false
+	for _, b := range c {
+		if b.ScreenName == fr.ScreenName {
+			return true
+		}
+	}
+	return false
 }
 
 func inSlice2(fr string, c []string) bool {
-    for _, b := range c {
-        if fr == b {
-            return true
-        }
-    }
-    return false
+	for _, b := range c {
+		if fr == b {
+			return true
+		}
+	}
+	return false
 }
 
 type logger struct {
