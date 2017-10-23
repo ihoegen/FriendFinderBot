@@ -23,3 +23,7 @@ How powerful Golang is as a language, and how surprisingly accurate our algorith
 ## What's next for FriendFinderBot
 
 We would love to expand into the Facebook, Instagram, and Reddit space.
+
+## Like it?
+
+[Donate](https://www.paypal.me/ihoegen/5)
